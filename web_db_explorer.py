@@ -6303,8 +6303,11 @@ def get_relationship_graph():
             "largest_table": max(nodes, key=lambda x: x["row_count"])["name"] if nodes else None
         }
 
+        # print(f"Final graph: {len(nodes)} nodes, {len(edges)} edges")
+        # print(f"Edges: {[f'{e['source']}->{e['target']}' for e in edges]}")
         print(f"Final graph: {len(nodes)} nodes, {len(edges)} edges")
-        print(f"Edges: {[f'{e['source']}->{e['target']}' for e in edges]}")
+        edge_list = [f"{e['source']}->{e['target']}" for e in edges]
+        print(f"Edges: {edge_list}")
 
         return jsonify({
             "success": True,
