@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Database Explorer</title>
+    <title>AI Enabled Universal Database Explorer</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -357,6 +357,30 @@
             border-left-color: #667eea;
             background-color: #f8f9fa;
         }
+
+        .btn-xs {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1.25;
+            border-radius: 0.25rem;
+        }
+
+        .dropdown-menu-dark .dropdown-item {
+            padding: 0.75rem 1rem;
+        }
+
+        .dropdown-menu-dark .dropdown-item:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .dropdown-menu-dark .dropdown-item .fw-bold {
+            font-size: 0.9rem;
+        }
+
+        .dropdown-menu-dark .dropdown-item small {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -376,14 +400,46 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h4><i class="fas fa-database"></i> Database Explorer</h4>
-            <small class="opacity-75">Universal Database Management</small>
+            <small class="opacity-75">
+                AI Driven Universal Database Management Designed by
+                <a href="https://www.linkedin.com/in/jahidul-arafat-presidential-fellow-phd-candidate-791a7490/" target="_blank" style="color: inherit; text-decoration: underline;">
+                    Jahidul Arafat, ex-Oracle (IC3), Presidential Fellow, PHD Candidate (Secure Software Supply Chain == DevSecOps), Auburn University, USA
+                </a>
+            </small>
+
+            <!-- Quick Links Section -->
+            <div class="mt-3">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-light dropdown-toggle w-100" type="button" id="quickLinksDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-external-link-alt"></i> Quick Links
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark w-100" aria-labelledby="quickLinksDropdown" id="quickLinksMenu">
+                        <!-- Links will be populated by JavaScript -->
+                    </ul>
+                </div>
+            </div>
         </div>
+
 
         <!-- Connection Status -->
         <div id="connectionStatus" class="connection-status connection-disconnected">
             <div class="d-flex align-items-center">
                 <span class="status-indicator status-disconnected"></span>
                 <span id="connectionText">Not Connected</span>
+            </div>
+        </div>
+
+        <!-- Environment Status -->
+        <div class="mx-3 mb-3">
+            <div class="card bg-dark text-light">
+                <div class="card-body p-3">
+                    <h6 class="card-title mb-2" id="envStatus">
+                        <i class="fas fa-server"></i> Environment
+                    </h6>
+                    <small class="text-light opacity-75" id="envDetails">
+                        Loading...
+                    </small>
+                </div>
             </div>
         </div>
 
@@ -453,7 +509,12 @@
         <!-- Overview Tab -->
         <div id="overview-tab" class="tab-pane active">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-home text-primary"></i> Database Overview</h2>
+                <div>
+                    <h2><i class="fas fa-home text-primary"></i> Database Overview</h2>
+                    <small class="text-muted" id="environmentIndicator">
+                        <!-- Environment info will be populated by JavaScript -->
+                    </small>
+                </div>
                 <div>
                     <input type="file" id="databaseFile" class="form-control d-inline-block me-2" style="width: auto;"
                            accept=".db,.sqlite,.sqlite3">
@@ -544,6 +605,40 @@
                                 <button class="btn btn-outline-info" onclick="generateReport()">
                                     <i class="fas fa-file-alt"></i> Generate Report
                                 </button>
+                                <button class="btn btn-outline-secondary" onclick="showEnvironmentInfo()">
+                                    <i class="fas fa-info-circle"></i> Environment Info
+                                </button>
+                                <button class="btn btn-outline-dark" onclick="showKeyboardShortcuts()" title="Keyboard Shortcuts (F1)">
+                                    <i class="fas fa-keyboard"></i> Shortcuts
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-external-link-alt"></i> Related Tools
+                        </div>
+                        <div class="card-body">
+                            <div class="small mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><i class="fas fa-project-diagram text-info"></i> Relationships</span>
+                                    <button class="btn btn-xs btn-outline-info" onclick="openRelationshipTool()">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span><i class="fas fa-book text-primary"></i> API Docs</span>
+                                    <button class="btn btn-xs btn-outline-primary" onclick="openApiDocs()">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-heartbeat text-success"></i> API Status</span>
+                                    <button class="btn btn-xs btn-outline-success" onclick="checkApiStatus()">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -9272,6 +9367,24 @@ LIMIT 50;`;
             }
         }
 
+        // F1 to show environment info
+        if (event.key === 'F1') {
+            event.preventDefault();
+            showEnvironmentInfo();
+        }
+
+        // Ctrl+Shift+E to show environment info
+        if (event.ctrlKey && event.shiftKey && event.key === 'E') {
+            event.preventDefault();
+            showEnvironmentInfo();
+        }
+
+        // Add to keyboard event handler
+        if (event.ctrlKey && event.key === 'k') {
+            event.preventDefault();
+            document.getElementById('quickLinksDropdown').click();
+        }
+
         // F5 to refresh tables
         if (event.key === 'F5' && isConnected) {
             event.preventDefault();
@@ -9288,10 +9401,160 @@ LIMIT 50;`;
     });
 
 
+    // Environment detection and URL generation
+    function getBaseUrl() {
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        const protocol = window.location.protocol;
 
+        // Check if we're on Render
+        if (hostname.includes('onrender.com')) {
+            return `${protocol}//${hostname}`;
+        }
+
+        // Check if we're on localhost with port
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
+        }
+
+        // Default to current origin
+        return window.location.origin;
+    }
+
+    function populateQuickLinks() {
+        const baseUrl = getBaseUrl();
+        const quickLinksMenu = document.getElementById('quickLinksMenu');
+
+        if (!quickLinksMenu) return;
+
+        const links = [
+            {
+                icon: 'fas fa-home',
+                title: 'Main Explorer',
+                url: baseUrl,
+                description: 'Database management interface'
+            },
+            {
+                icon: 'fas fa-project-diagram',
+                title: 'Relationships',
+                url: `${baseUrl}/relationship`,
+                description: 'Visual relationship mapping'
+            },
+            {
+                icon: 'fas fa-book',
+                title: 'API Docs',
+                url: `${baseUrl}/api/docs`,
+                description: 'API documentation'
+            },
+            {
+                icon: 'fas fa-heartbeat',
+                title: 'API Status',
+                url: `${baseUrl}/api/status`,
+                description: 'Check API health'
+            },
+            {
+                icon: 'fas fa-cog',
+                title: 'Templates',
+                url: `${baseUrl}/check-templates`,
+                description: 'Template verification'
+            }
+        ];
+
+        quickLinksMenu.innerHTML = links.map(link => `
+        <li>
+            <a class="dropdown-item" href="${link.url}" target="_blank">
+                <i class="${link.icon} me-2"></i>
+                <div class="d-inline-block">
+                    <div class="fw-bold">${link.title}</div>
+                    <small class="text-muted">${link.description}</small>
+                </div>
+            </a>
+        </li>
+    `).join('');
+    }
+
+    function displayWelcomeMessage() {
+        const baseUrl = getBaseUrl();
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isRender = window.location.hostname.includes('onrender.com');
+
+        console.log('🚀 Universal Database Explorer - Web Interface');
+        console.log('============================================================');
+        console.log('🌐 Web Interface Available At:');
+        console.log(`   📊 Main Database Explorer: ${baseUrl}`);
+        console.log(`   🔗 Relationship Visualization: ${baseUrl}/relationship`);
+        console.log(`   📚 API Documentation: ${baseUrl}/api/docs`);
+        console.log(`   💚 API Status: ${baseUrl}/api/status`);
+        console.log(`   🔧 Template Status: ${baseUrl}/check-templates`);
+
+        if (isLocal) {
+            console.log('');
+            console.log('ℹ️  Running locally - all endpoints should be accessible');
+        } else if (isRender) {
+            console.log('');
+            console.log('☁️  Running on Render - API endpoints available');
+        } else {
+            console.log('');
+            console.log('🌐 Running on custom domain - API endpoints may vary');
+        }
+
+        // Update environment indicator in UI
+        const envIndicator = document.getElementById('environmentIndicator');
+        if (envIndicator) {
+            let envText = '';
+            let envIcon = '';
+
+            if (isLocal) {
+                envIcon = '🏠';
+                envText = 'Local Development';
+            } else if (isRender) {
+                envIcon = '☁️';
+                envText = 'Render Cloud';
+            } else {
+                envIcon = '🌐';
+                envText = 'Remote Server';
+            }
+
+            envIndicator.innerHTML = `${envIcon} ${envText} | Base URL: <code>${baseUrl}</code>`;
+        }
+
+        // Update environment status in sidebar
+        const envStatus = document.getElementById('envStatus');
+        const envDetails = document.getElementById('envDetails');
+        if (envStatus && envDetails) {
+            let statusIcon = '';
+            let statusText = '';
+            let detailsText = '';
+
+            if (isLocal) {
+                statusIcon = '🏠';
+                statusText = 'Local Dev';
+                detailsText = 'localhost';
+            } else if (isRender) {
+                statusIcon = '☁️';
+                statusText = 'Render Cloud';
+                detailsText = 'onrender.com';
+            } else {
+                statusIcon = '🌐';
+                statusText = 'Remote';
+                detailsText = window.location.hostname;
+            }
+
+            envStatus.innerHTML = `<i class="fas fa-server"></i> ${statusIcon} ${statusText}`;
+            envDetails.textContent = detailsText;
+        }
+
+        // Also populate the UI quick links
+        populateQuickLinks();
+    }
+
+    // Initialize application when DOM is loaded
     // Initialize application when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM loaded, initializing application...');
+
+        // Display welcome message with URLs
+        displayWelcomeMessage();
 
         // Initialize tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -9330,7 +9593,10 @@ LIMIT 50;`;
         showTab('overview');
 
         // Check API status and load AI models
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const baseUrl = getBaseUrl();
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if (isLocal) {
             DatabaseExplorerAPI.getApiStatus()
                 .then(result => {
                     if (result.status === 'healthy') {
@@ -9360,6 +9626,9 @@ LIMIT 50;`;
                 .catch(error => {
                     console.warn('⚠️ Could not connect to Database Explorer API:', error.message);
                 });
+        } else {
+            console.log('☁️ Running on remote server - API status check skipped');
+            console.log(`🔗 You can manually check API status at: ${baseUrl}/api/status`);
         }
 
         // Initialize schema visualization
@@ -10687,6 +10956,334 @@ ON UPDATE ${onUpdate}`;
         }
     };
 
+    // Quick access functions for related tools
+    window.openRelationshipTool = function() {
+        const baseUrl = getBaseUrl();
+        const relationshipUrl = `${baseUrl}/relationship`;
+        window.open(relationshipUrl, '_blank');
+    };
+
+    window.openApiDocs = function() {
+        const baseUrl = getBaseUrl();
+        const docsUrl = `${baseUrl}/api/docs`;
+        window.open(docsUrl, '_blank');
+    };
+
+    window.checkApiStatus = async function() {
+        const baseUrl = getBaseUrl();
+        const statusUrl = `${baseUrl}/api/status`;
+
+        try {
+            showLoading('Checking API status...');
+
+            // Try to fetch the status
+            const response = await fetch(statusUrl);
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.status === 'healthy') {
+                    showAlert('success', `✅ API is healthy! Server: ${data.server || 'Unknown'}`);
+                } else {
+                    showAlert('warning', `⚠️ API status: ${data.status}`);
+                }
+            } else {
+                showAlert('warning', `⚠️ API returned status: ${response.status}`);
+            }
+
+            // Also open in new tab for detailed view
+            window.open(statusUrl, '_blank');
+
+        } catch (error) {
+            showAlert('warning', `⚠️ Could not reach API. Opening status page...`);
+            window.open(statusUrl, '_blank');
+        } finally {
+            hideLoading();
+        }
+    };
+
+    window.showEnvironmentInfo = function() {
+        const baseUrl = getBaseUrl();
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isRender = window.location.hostname.includes('onrender.com');
+
+        let envType = 'Custom Server';
+        let envIcon = '🌐';
+        let envDescription = 'Running on a custom domain or server';
+
+        if (isLocal) {
+            envType = 'Local Development';
+            envIcon = '🏠';
+            envDescription = 'Running locally on your machine';
+        } else if (isRender) {
+            envType = 'Render Cloud';
+            envIcon = '☁️';
+            envDescription = 'Deployed on Render cloud platform';
+        }
+
+        const modalHtml = `
+    <div class="modal fade" id="environmentInfoModal" tabindex="-1" aria-labelledby="environmentInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="environmentInfoModalLabel">
+                        <i class="fas fa-info-circle"></i> Environment Information
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <div class="display-6 mb-2">${envIcon}</div>
+                                    <h5 class="card-title">${envType}</h5>
+                                    <p class="card-text text-muted">${envDescription}</p>
+                                    <code class="bg-white p-2 rounded d-inline-block">${baseUrl}</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-link"></i> Available Endpoints</h6>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-home text-primary"></i>
+                                        <strong>Main Explorer</strong>
+                                        <br><small class="text-muted">Database management interface</small>
+                                    </div>
+                                    <a href="${baseUrl}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-project-diagram text-info"></i>
+                                        <strong>Relationships</strong>
+                                        <br><small class="text-muted">Visual relationship mapping</small>
+                                    </div>
+                                    <a href="${baseUrl}/relationship" target="_blank" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-book text-success"></i>
+                                        <strong>API Documentation</strong>
+                                        <br><small class="text-muted">Interactive API docs</small>
+                                    </div>
+                                    <a href="${baseUrl}/api/docs" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-cog"></i> System Endpoints</h6>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-heartbeat text-success"></i>
+                                        <strong>API Status</strong>
+                                        <br><small class="text-muted">Health check endpoint</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-success" onclick="checkApiStatus()">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-cog text-warning"></i>
+                                        <strong>Template Status</strong>
+                                        <br><small class="text-muted">Template verification</small>
+                                    </div>
+                                    <a href="${baseUrl}/check-templates" target="_blank" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6><i class="fas fa-info-circle"></i> Environment Details</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th>Protocol:</th>
+                                        <td>${window.location.protocol}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Hostname:</th>
+                                        <td>${window.location.hostname}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Port:</th>
+                                        <td>${window.location.port || '80/443'}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Base URL:</th>
+                                        <td><code>${baseUrl}</code></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-lightbulb"></i> Quick Tips</h6>
+                        <ul class="mb-0">
+                            <li><strong>Local Development:</strong> All endpoints are typically accessible on localhost</li>
+                            <li><strong>Render Cloud:</strong> Some endpoints may have different response times due to cold starts</li>
+                            <li><strong>API Documentation:</strong> Use the /api/docs endpoint for detailed API reference</li>
+                            <li><strong>Status Monitoring:</strong> Check /api/status for real-time system health</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-primary" onclick="copyEnvironmentInfo('${baseUrl}')">
+                        <i class="fas fa-copy"></i> Copy Base URL
+                    </button>
+                    <button class="btn btn-outline-success" onclick="openAllEndpoints('${baseUrl}')">
+                        <i class="fas fa-external-link-alt"></i> Open All Endpoints
+                    </button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+        const modal = createModal('environmentInfoModal', modalHtml);
+        modal.show();
+    };
+
+    window.copyEnvironmentInfo = function(baseUrl) {
+        const envInfo = `Universal Database Explorer
+Base URL: ${baseUrl}
+Endpoints:
+- Main Explorer: ${baseUrl}
+- Relationships: ${baseUrl}/relationship
+- API Docs: ${baseUrl}/api/docs
+- API Status: ${baseUrl}/api/status
+- Templates: ${baseUrl}/check-templates`;
+
+        copyToClipboard(envInfo);
+        showAlert('success', 'Environment information copied to clipboard!');
+    };
+
+    window.openAllEndpoints = function(baseUrl) {
+        const endpoints = [
+            baseUrl,
+            `${baseUrl}/relationship`,
+            `${baseUrl}/api/docs`,
+            `${baseUrl}/api/status`,
+            `${baseUrl}/check-templates`
+        ];
+
+        if (confirm(`This will open ${endpoints.length} tabs. Continue?`)) {
+            endpoints.forEach((url, index) => {
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                }, index * 500); // Stagger the opening to avoid browser blocking
+            });
+
+            showAlert('info', `Opening ${endpoints.length} endpoints in new tabs...`);
+        }
+    };
+
+    window.showKeyboardShortcuts = function() {
+        const modalHtml = `
+    <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1" aria-labelledby="keyboardShortcutsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="keyboardShortcutsModalLabel">
+                        <i class="fas fa-keyboard"></i> Keyboard Shortcuts
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <h6><i class="fas fa-code"></i> Query Editor</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+                                    <td>Execute SQL query</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd></td>
+                                    <td>Format SQL query</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Esc</kbd></td>
+                                    <td>Clear query</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h6><i class="fas fa-comments"></i> AI Chat</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+                                    <td>Send AI message</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Enter</kbd></td>
+                                    <td>Send message (single line)</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Shift</kbd> + <kbd>Enter</kbd></td>
+                                    <td>New line in message</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h6><i class="fas fa-cog"></i> General</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><kbd>F1</kbd></td>
+                                    <td>Show environment info</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>F5</kbd></td>
+                                    <td>Refresh tables (when connected)</td>
+                                </tr>
+                                <tr>
+                                    <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></td>
+                                    <td>Show environment info</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>Pro Tip:</strong> Most shortcuts work contextually based on the active element.
+                            For example, <kbd>Ctrl</kbd> + <kbd>Enter</kbd> works in both the SQL editor and AI chat.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
+        const modal = createModal('keyboardShortcutsModal', modalHtml);
+        modal.show();
+    };
+
 
 
     // Expose utility functions globally
@@ -10695,6 +11292,14 @@ ON UPDATE ${onUpdate}`;
     window.hideLoading = hideLoading;
     window.copyToClipboard = copyToClipboard;
     window.debugTabs = debugTabs;
+
+    console.log('Quick Links Menu Element:', document.getElementById('quickLinksMenu'));
+    console.log('Base URL:', getBaseUrl());
+
+    // Add this to browser console to debug:
+    console.log('Hostname:', window.location.hostname);
+    console.log('Is Local:', window.location.hostname === 'localhost');
+    console.log('Is Render:', window.location.hostname.includes('onrender.com'));
 </script>
 </body>
 </html>

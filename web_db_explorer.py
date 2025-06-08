@@ -2437,71 +2437,295 @@ def after_request(response):
 #         print("🧹 Cleanup completed")
 
 # main with render deployment on Render
+# def main():
+#     """Main function to start the web application - Updated for Render"""
+#     print("🚀 Starting Universal Database Explorer - Web Interface")
+#     print("=" * 60)
+#
+#     # Create templates (now handles both main and relationship templates)
+#     create_templates()
+#
+#     # Setup Swagger UI
+#     setup_swagger(app)
+#
+#     # Check for required dependencies
+#     missing_deps = []
+#
+#     try:
+#         import flask
+#     except ImportError:
+#         missing_deps.append("flask")
+#
+#     if not VISUALIZATION_AVAILABLE:
+#         missing_deps.append("matplotlib seaborn pandas")
+#
+#     # Check for Swagger UI dependency
+#     try:
+#         import flask_swagger_ui
+#     except ImportError:
+#         missing_deps.append("flask-swagger-ui")
+#
+#     if missing_deps:
+#         print("⚠️  Missing optional dependencies:")
+#         for dep in missing_deps:
+#             print(f"   pip install {dep}")
+#         print("\nSome features may be limited without these dependencies.")
+#         print()
+#
+#     # Start the Flask app
+#     try:
+#         # Get port from environment (Render provides PORT)
+#         port = int(os.environ.get('PORT', 5001))
+#
+#         print(f"🌐 Web Interface Available At:")
+#         print(f"   📊 Main Database Explorer: https://your-app.onrender.com")
+#         print(f"   🔗 Relationship Visualization: https://your-app.onrender.com/relationship")
+#         print(f"   📚 API Documentation: https://your-app.onrender.com/api/docs")
+#         print()
+#         print("🛑 Press Ctrl+C to stop the server")
+#         print("=" * 60)
+#
+#         # Configure Flask for production
+#         app.config['DEBUG'] = os.environ.get('DEBUG', 'False').lower() == 'true'
+#         app.config['TEMPLATES_AUTO_RELOAD'] = False
+#
+#         # Start the server
+#         print(f"🌐 Starting server on port {port}")
+#         app.run(host='0.0.0.0', port=port, debug=False)
+#
+#     except KeyboardInterrupt:
+#         print("\n\n👋 Server stopped by user")
+#     except Exception as e:
+#         print(f"\n❌ Error starting server: {e}")
+#     finally:
+#         # Cleanup
+#         if web_explorer:
+#             web_explorer.close()
+#         print("🧹 Cleanup completed")
+
+
+
 def main():
-    """Main function to start the web application - Updated for Render"""
+    """Main function to start the web application - Enhanced for Multi-Environment Support"""
     print("🚀 Starting Universal Database Explorer - Web Interface")
     print("=" * 60)
 
-    # Create templates (now handles both main and relationship templates)
-    create_templates()
+    # Detect environment
+    is_render = os.environ.get('RENDER') == 'true'
+    is_local = not is_render
+    port = int(os.environ.get('PORT', 5001))
+
+    # Environment-specific configuration
+    if is_render:
+        print("☁️  Detected Render Cloud Environment")
+        base_url = "https://universaldbproject.onrender.com"
+        debug_mode = False
+    else:
+        print("🏠 Detected Local Development Environment")
+        base_url = f"http://localhost:{port}"
+        debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
+
+    # Create templates (handles both main and relationship templates)
+    try:
+        print("📄 Creating frontend templates...")
+        create_templates()
+        print("✅ Main frontend template created")
+        print("✅ Relationship template created")
+    except Exception as e:
+        print(f"⚠️  Warning: Template creation failed: {e}")
 
     # Setup Swagger UI
-    setup_swagger(app)
+    try:
+        print("📚 Setting up API documentation...")
+        setup_swagger(app)
+        print("✅ Swagger UI configured")
+    except Exception as e:
+        print(f"⚠️  Warning: Swagger setup failed: {e}")
 
     # Check for required dependencies
+    print("🔍 Checking dependencies...")
     missing_deps = []
+    optional_features = []
 
     try:
         import flask
+        print("✅ Flask available")
     except ImportError:
         missing_deps.append("flask")
 
-    if not VISUALIZATION_AVAILABLE:
-        missing_deps.append("matplotlib seaborn pandas")
-
-    # Check for Swagger UI dependency
     try:
         import flask_swagger_ui
+        print("✅ Flask-Swagger-UI available")
     except ImportError:
         missing_deps.append("flask-swagger-ui")
+        optional_features.append("API Documentation")
+
+    if not VISUALIZATION_AVAILABLE:
+        missing_deps.append("matplotlib seaborn pandas")
+        optional_features.append("Data Visualization")
+    else:
+        print("✅ Visualization libraries available")
+
+    # AI Chat dependencies
+    try:
+        import requests
+        print("✅ Requests library available")
+    except ImportError:
+        missing_deps.append("requests")
+        optional_features.append("AI Chat Integration")
 
     if missing_deps:
-        print("⚠️  Missing optional dependencies:")
+        print("\n⚠️  Missing optional dependencies:")
         for dep in missing_deps:
-            print(f"   pip install {dep}")
-        print("\nSome features may be limited without these dependencies.")
-        print()
+            print(f"   📦 pip install {dep}")
 
-    # Start the Flask app
+        if optional_features:
+            print(f"\n🔧 Affected features: {', '.join(optional_features)}")
+
+        print("\n💡 Some features may be limited without these dependencies.")
+    else:
+        print("✅ All dependencies satisfied")
+
+    # Environment-specific startup information
+    print(f"\n🌐 Web Interface Available At:")
+    print(f"   📊 Main Database Explorer: {base_url}")
+    print(f"   🔗 Relationship Visualization: {base_url}/relationship")
+    print(f"   📚 API Documentation: {base_url}/api/docs")
+    print(f"   💚 API Status: {base_url}/api/status")
+    print(f"   🔧 Template Status: {base_url}/check-templates")
+
+    # Additional environment info
+    if is_local:
+        print(f"\n🏠 Local Development Info:")
+        print(f"   🖥️  Server: localhost:{port}")
+        print(f"   🐛 Debug Mode: {'Enabled' if debug_mode else 'Disabled'}")
+        print(f"   🔄 Auto-reload: {'Enabled' if debug_mode else 'Disabled'}")
+        print(f"\n💡 Tips for local development:")
+        print(f"   • All endpoints should be accessible immediately")
+        print(f"   • Check console for detailed startup logs")
+        print(f"   • Use F1 in the web interface for environment info")
+    else:
+        print(f"\n☁️  Render Cloud Info:")
+        print(f"   🌐 Public URL: {base_url}")
+        print(f"   🚀 Production Mode: Enabled")
+        print(f"   📡 Port: {port} (auto-assigned by Render)")
+        print(f"\n💡 Tips for Render deployment:")
+        print(f"   • Cold starts may take 10-30 seconds")
+        print(f"   • All endpoints use HTTPS automatically")
+        print(f"   • Check /api/status for health monitoring")
+
+    # Security and performance notes
+    print(f"\n🔒 Security & Performance:")
+    print(f"   🛡️  CORS: {'Enabled' if is_local else 'Production settings'}")
+    print(f"   📊 Template Caching: {'Disabled (dev)' if debug_mode else 'Enabled'}")
+    print(f"   🗃️  Database: SQLite (file-based)")
+
+    print(f"\n🛑 Press Ctrl+C to stop the server")
+    print("=" * 60)
+
+    # Configure Flask app based on environment
+    app.config.update({
+        'DEBUG': debug_mode,
+        'TEMPLATES_AUTO_RELOAD': debug_mode,
+        'TESTING': False,
+        'SECRET_KEY': os.environ.get('SECRET_KEY', 'dev-key-change-in-production'),
+        'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,  # 16MB max file upload
+    })
+
+    # Add environment variables to app config for template access
+    app.config.update({
+        'ENV_TYPE': 'local' if is_local else 'render',
+        'BASE_URL': base_url,
+        'IS_LOCAL': is_local,
+        'IS_RENDER': is_render,
+    })
+
+    # Production-specific configurations
+    if is_render:
+        app.config.update({
+            'PREFERRED_URL_SCHEME': 'https',
+            'SESSION_COOKIE_SECURE': True,
+            'SESSION_COOKIE_HTTPONLY': True,
+            'SESSION_COOKIE_SAMESITE': 'Lax',
+        })
+
+    # Start the server with enhanced error handling
     try:
-        # Get port from environment (Render provides PORT)
-        port = int(os.environ.get('PORT', 5001))
+        print(f"🌐 Starting server on {'0.0.0.0' if is_render else 'localhost'}:{port}")
 
-        print(f"🌐 Web Interface Available At:")
-        print(f"   📊 Main Database Explorer: https://your-app.onrender.com")
-        print(f"   🔗 Relationship Visualization: https://your-app.onrender.com/relationship")
-        print(f"   📚 API Documentation: https://your-app.onrender.com/api/docs")
-        print()
-        print("🛑 Press Ctrl+C to stop the server")
-        print("=" * 60)
+        if is_local:
+            print(f"🔗 Quick Access URLs:")
+            print(f"   • Main: {base_url}")
+            print(f"   • Docs: {base_url}/api/docs")
+            print(f"   • Status: {base_url}/api/status")
 
-        # Configure Flask for production
-        app.config['DEBUG'] = os.environ.get('DEBUG', 'False').lower() == 'true'
-        app.config['TEMPLATES_AUTO_RELOAD'] = False
+        print("⏳ Server starting...")
 
-        # Start the server
-        print(f"🌐 Starting server on port {port}")
-        app.run(host='0.0.0.0', port=port, debug=False)
+        # Enhanced server startup
+        host = '0.0.0.0' if is_render else 'localhost'
+
+        # Start the Flask application
+        app.run(
+            host=host,
+            port=port,
+            debug=debug_mode,
+            threaded=True,  # Enable threading for better performance
+            use_reloader=debug_mode and is_local,  # Only use reloader in local debug mode
+        )
 
     except KeyboardInterrupt:
         print("\n\n👋 Server stopped by user")
+        print("🧹 Shutting down gracefully...")
+
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"\n❌ Port {port} is already in use!")
+            if is_local:
+                print(f"💡 Try a different port: python app.py --port 5002")
+                print(f"💡 Or kill the process using port {port}")
+            else:
+                print(f"💡 Render will automatically assign a different port")
+        else:
+            print(f"\n❌ Network error: {e}")
+
     except Exception as e:
-        print(f"\n❌ Error starting server: {e}")
+        print(f"\n❌ Unexpected error starting server: {e}")
+        import traceback
+        if debug_mode:
+            print("🐛 Full error traceback:")
+            traceback.print_exc()
+        else:
+            print("💡 Enable debug mode for detailed error information")
+
     finally:
-        # Cleanup
-        if web_explorer:
-            web_explorer.close()
-        print("🧹 Cleanup completed")
+        # Enhanced cleanup
+        print("\n🧹 Performing cleanup...")
+
+        try:
+            # Close database connections
+            if 'web_explorer' in globals() and web_explorer:
+                web_explorer.close()
+                print("✅ Database connections closed")
+
+            # Clear any temporary files
+            temp_files = ['temp_chart.png', 'temp_export.csv']
+            for temp_file in temp_files:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    print(f"✅ Removed temporary file: {temp_file}")
+
+        except Exception as cleanup_error:
+            print(f"⚠️  Cleanup warning: {cleanup_error}")
+
+        print("✅ Cleanup completed")
+
+        # Final message
+        if is_local:
+            print("\n💻 Thanks for using AI Enabled Universal Database Explorer locally!")
+        else:
+            print("\n☁️  Universal Database Explorer stopped on Render")
+
+        print("🌟 Visit: https://github.com/jahidul-arafat/UniversalDBProject for updates")
 
 if __name__ == "__main__":
     main()
