@@ -2351,8 +2351,94 @@ def after_request(response):
 
 
 # Add this to your main() function in web_db_explorer.py
+# def main():
+#     """Main function to start the web application"""
+#     print("🚀 Starting Universal Database Explorer - Web Interface")
+#     print("=" * 60)
+#
+#     # Create templates (now handles both main and relationship templates)
+#     create_templates()
+#
+#     # Setup Swagger UI
+#     setup_swagger(app)
+#
+#     # Check for required dependencies
+#     missing_deps = []
+#
+#     try:
+#         import flask
+#     except ImportError:
+#         missing_deps.append("flask")
+#
+#     if not VISUALIZATION_AVAILABLE:
+#         missing_deps.append("matplotlib seaborn pandas")
+#
+#     # Check for Swagger UI dependency
+#     try:
+#         import flask_swagger_ui
+#     except ImportError:
+#         missing_deps.append("flask-swagger-ui")
+#
+#     if missing_deps:
+#         print("⚠️  Missing optional dependencies:")
+#         for dep in missing_deps:
+#             print(f"   pip install {dep}")
+#         print("\nSome features may be limited without these dependencies.")
+#         print()
+#
+#     # Start the Flask app
+#     try:
+#         # Try to find an available port
+#         import socket
+#         port = 5001  # Default port
+#
+#         for test_port in [5001, 5002, 5003, 8000, 8080, 3000]:
+#             try:
+#                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+#                     s.bind(('localhost', test_port))
+#                     port = test_port
+#                     break
+#             except OSError:
+#                 continue
+#
+#         print(f"🌐 Web Interface Available At:")
+#         print(f"   📊 Main Database Explorer: http://localhost:{port}")
+#         print(f"   🔗 Relationship Visualization: http://localhost:{port}/relationship")
+#         print(f"   📚 API Documentation: http://localhost:{port}/api/docs")
+#         print(f"   💚 API Status: http://localhost:{port}/api/status")
+#         print(f"   🔧 Template Status: http://localhost:{port}/check-templates")
+#         print()
+#         print("📋 Quick Start Guide:")
+#         print("1. Open your web browser")
+#         print(f"2. Go to http://localhost:{port} for the main interface")
+#         print("3. Upload a SQLite database file")
+#         print("4. Explore your data with the main interface")
+#         print(f"5. Go to http://localhost:{port}/relationship for enhanced relationship visualization")
+#         print()
+#         print("🛑 Press Ctrl+C to stop the server")
+#         print("=" * 60)
+#
+#         # Configure Flask for development
+#         app.config['DEBUG'] = True
+#         app.config['TEMPLATES_AUTO_RELOAD'] = True
+#
+#         # Start the server on the found port
+#         print(f"🌐 Starting server on port {port}")
+#         app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+#
+#     except KeyboardInterrupt:
+#         print("\n\n👋 Server stopped by user")
+#     except Exception as e:
+#         print(f"\n❌ Error starting server: {e}")
+#     finally:
+#         # Cleanup
+#         if web_explorer:
+#             web_explorer.close()
+#         print("🧹 Cleanup completed")
+
+# main with render deployment on Render
 def main():
-    """Main function to start the web application"""
+    """Main function to start the web application - Updated for Render"""
     print("🚀 Starting Universal Database Explorer - Web Interface")
     print("=" * 60)
 
@@ -2388,43 +2474,24 @@ def main():
 
     # Start the Flask app
     try:
-        # Try to find an available port
-        import socket
-        port = 5001  # Default port
-
-        for test_port in [5001, 5002, 5003, 8000, 8080, 3000]:
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(('localhost', test_port))
-                    port = test_port
-                    break
-            except OSError:
-                continue
+        # Get port from environment (Render provides PORT)
+        port = int(os.environ.get('PORT', 5001))
 
         print(f"🌐 Web Interface Available At:")
-        print(f"   📊 Main Database Explorer: http://localhost:{port}")
-        print(f"   🔗 Relationship Visualization: http://localhost:{port}/relationship")
-        print(f"   📚 API Documentation: http://localhost:{port}/api/docs")
-        print(f"   💚 API Status: http://localhost:{port}/api/status")
-        print(f"   🔧 Template Status: http://localhost:{port}/check-templates")
-        print()
-        print("📋 Quick Start Guide:")
-        print("1. Open your web browser")
-        print(f"2. Go to http://localhost:{port} for the main interface")
-        print("3. Upload a SQLite database file")
-        print("4. Explore your data with the main interface")
-        print(f"5. Go to http://localhost:{port}/relationship for enhanced relationship visualization")
+        print(f"   📊 Main Database Explorer: https://your-app.onrender.com")
+        print(f"   🔗 Relationship Visualization: https://your-app.onrender.com/relationship")
+        print(f"   📚 API Documentation: https://your-app.onrender.com/api/docs")
         print()
         print("🛑 Press Ctrl+C to stop the server")
         print("=" * 60)
 
-        # Configure Flask for development
-        app.config['DEBUG'] = True
-        app.config['TEMPLATES_AUTO_RELOAD'] = True
+        # Configure Flask for production
+        app.config['DEBUG'] = os.environ.get('DEBUG', 'False').lower() == 'true'
+        app.config['TEMPLATES_AUTO_RELOAD'] = False
 
-        # Start the server on the found port
+        # Start the server
         print(f"🌐 Starting server on port {port}")
-        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+        app.run(host='0.0.0.0', port=port, debug=False)
 
     except KeyboardInterrupt:
         print("\n\n👋 Server stopped by user")
