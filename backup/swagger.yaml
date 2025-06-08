@@ -1,0 +1,1974 @@
+openapi: 3.0.3
+info:
+  title: Universal Database Explorer API
+  description: |
+    A comprehensive REST API for exploring and analyzing SQLite databases through a web interface designed by Jahidul Arafat.
+    
+    ## Follow Me
+    url: https://www.linkedin.com/in/jahidul-arafat-964b771b0/
+    
+    ## Features
+    - **Database Connection**: Upload and connect to SQLite database files
+    - **Schema Exploration**: Browse tables, columns, indexes, and relationships
+    - **Query Execution**: Run custom SQL queries with results visualization
+    - **Data Analysis**: Perform validation, performance analysis, and data export
+    - **Visualization**: Generate charts and graphs from query results
+    
+    ## Getting Started
+    1. Upload a SQLite database file using `/api/connect`
+    2. Explore database structure with `/api/database-info` and `/api/tables`
+    3. Execute queries using `/api/execute-query`
+    4. Generate visualizations with `/api/visualize`
+    
+    ## Authentication
+    Currently, no authentication is required for this API.
+    
+    ## Rate Limiting
+    No rate limiting is currently implemented.
+  version: 1.0.0
+  contact:
+    name: Universal Database Explorer
+    url: https://github.com/your-repo/universal-db-explorer
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001
+    description: Development server
+  - url: http://localhost:5002
+    description: Alternative development server
+
+tags:
+  - name: Connection
+    description: Database connection and file management
+  - name: Schema
+    description: Database schema exploration and metadata
+  - name: Query
+    description: SQL query execution and results
+  - name: Analysis
+    description: Data validation and performance analysis
+  - name: Visualization
+    description: Chart generation and data visualization
+  - name: Export
+    description: Data and schema export operations
+
+paths:
+  /api/connect:
+    post:
+      tags:
+        - Connection
+      summary: Connect to a database
+      description: Upload and connect to a SQLite database file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                database_file:
+                  type: string
+                  format: binary
+                  description: SQLite database file (.db, .sqlite, .sqlite3)
+              required:
+                - database_file
+            example:
+              database_file: "sample_database.db"
+      responses:
+        '200':
+          description: Database connection successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+              examples:
+                success:
+                  summary: Successful connection
+                  value:
+                    success: true
+                    message: "Successfully connected to sample_database.db"
+                    database_info:
+                      database_name: "sample_database.db"
+                      database_type: "SQLite"
+                      file_size_mb: 2.45
+                      total_tables: 5
+                      total_views: 1
+                      total_triggers: 2
+                      total_indexes: 3
+                      total_rows: 10000
+                error:
+                  summary: Connection failed
+                  value:
+                    success: false
+                    error: "Database file 'invalid.db' not found"
+        '413':
+          description: File too large (max 100MB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad request - no file provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/database-info:
+    get:
+      tags:
+        - Schema
+      summary: Get database information
+      description: Retrieve comprehensive information about the connected database
+      responses:
+        '200':
+          description: Database information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseInfo'
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tables:
+    get:
+      tags:
+        - Schema
+      summary: List all tables
+      description: Get a list of all tables in the connected database
+      responses:
+        '200':
+          description: Tables retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tables:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TableSummary'
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/structure:
+    get:
+      tags:
+        - Schema
+      summary: Get table structure
+      description: Retrieve detailed structure information for a specific table
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table to analyze
+          schema:
+            type: string
+          example: "users"
+      responses:
+        '200':
+          description: Table structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  structure:
+                    $ref: '#/components/schemas/TableStructure'
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/data:
+    get:
+      tags:
+        - Query
+      summary: Get table data
+      description: Retrieve sample data from a specific table
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table
+          schema:
+            type: string
+          example: "users"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of rows to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+          example: 50
+      responses:
+        '200':
+          description: Table data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableDataResponse'
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/execute-query:
+    post:
+      tags:
+        - Query
+      summary: Execute SQL query
+      description: Execute a custom SQL query and return results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: SQL query to execute
+                  example: "SELECT * FROM users WHERE age > 25 LIMIT 10;"
+              required:
+                - query
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SelectQueryResponse'
+                  - $ref: '#/components/schemas/ModifyQueryResponse'
+              examples:
+                select_query:
+                  summary: SELECT query result
+                  value:
+                    success: true
+                    type: "select"
+                    data:
+                      - id: 1
+                        name: "John Doe"
+                        age: 30
+                      - id: 2
+                        name: "Jane Smith"
+                        age: 28
+                    row_count: 2
+                    columns: ["id", "name", "age"]
+                modify_query:
+                  summary: INSERT/UPDATE/DELETE result
+                  value:
+                    success: true
+                    type: "modify"
+                    affected_rows: 5
+                    message: "Query executed successfully. 5 rows affected."
+        '400':
+          description: Query execution failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "SQL syntax error near 'SELECTT'"
+
+  /api/search-tables:
+    get:
+      tags:
+        - Schema
+      summary: Search tables
+      description: Search for tables containing a keyword in table or column names
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          description: Keyword to search for
+          schema:
+            type: string
+          example: "user"
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tables:
+                    type: array
+                    items:
+                      type: string
+                    example: ["users", "user_profiles", "user_sessions"]
+        '400':
+          description: No search keyword provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/visualize:
+    post:
+      tags:
+        - Visualization
+      summary: Create data visualization
+      description: Generate charts and graphs from query result data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisualizationRequest'
+      responses:
+        '200':
+          description: Visualization created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  image:
+                    type: string
+                    format: byte
+                    description: Base64 encoded PNG image
+                    example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+        '400':
+          description: Invalid visualization parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '501':
+          description: Visualization not available (missing dependencies)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/export-csv:
+    post:
+      tags:
+        - Export
+      summary: Export data to CSV
+      description: Export query results or table data to CSV format
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    type: object
+                  description: Array of data objects to export
+                  example:
+                    - id: 1
+                      name: "John"
+                      age: 30
+                    - id: 2
+                      name: "Jane"
+                      age: 25
+                filename:
+                  type: string
+                  description: Name of the CSV file
+                  default: "export.csv"
+                  example: "users_export.csv"
+              required:
+                - data
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+              example: |
+                id,name,age
+                1,John,30
+                2,Jane,25
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: "attachment; filename=users_export.csv"
+        '400':
+          description: No data to export
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/validate-data:
+    get:
+      tags:
+        - Analysis
+      summary: Run data validation
+      description: Perform comprehensive data validation checks on the database
+      responses:
+        '200':
+          description: Validation completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ValidationResult'
+                    example:
+                      - type: "warning"
+                        title: "Empty Tables"
+                        message: "Found 2 empty tables: temp_data, logs"
+                      - type: "error"
+                        title: "Referential Integrity Issues"
+                        message: "Found 3 referential integrity violations"
+                      - type: "info"
+                        title: "Indexing Recommendations"
+                        message: "Consider adding indexes to large tables: transactions, user_events"
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/performance-analysis:
+    get:
+      tags:
+        - Analysis
+      summary: Analyze database performance
+      description: Generate comprehensive performance analysis and optimization recommendations
+      responses:
+        '200':
+          description: Performance analysis completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  analysis:
+                    $ref: '#/components/schemas/PerformanceAnalysis'
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/export-schema:
+    get:
+      tags:
+        - Export
+      summary: Export database schema
+      description: Export the complete database schema as SQL DDL statements
+      responses:
+        '200':
+          description: Schema exported successfully
+          content:
+            text/sql:
+              schema:
+                type: string
+                format: binary
+              example: |
+                -- Database Schema Export
+                -- Generated: 2025-06-04 01:30:00
+                
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE
+                );
+                
+                CREATE INDEX idx_users_email ON users (email);
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: "attachment; filename=database_schema.sql"
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sample-queries:
+    get:
+      tags:
+        - Query
+      summary: Get sample SQL queries
+      description: Retrieve categorized sample SQL queries for common operations
+      responses:
+        '200':
+          description: Sample queries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  basic:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SampleQuery'
+                  analysis:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SampleQuery'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SampleQuery'
+                example:
+                  basic:
+                    - name: "Show all tables"
+                      query: "SELECT name FROM sqlite_master WHERE type='table';"
+                    - name: "Count tables"
+                      query: "SELECT COUNT(*) as table_count FROM sqlite_master WHERE type='table';"
+                  analysis:
+                    - name: "Table sizes"
+                      query: "SELECT name, (SELECT COUNT(*) FROM table_name) as row_count FROM sqlite_master WHERE type='table';"
+                  data:
+                    - name: "Find duplicates"
+                      query: "SELECT column1, column2, COUNT(*) FROM table_name GROUP BY column1, column2 HAVING COUNT(*) > 1;"
+
+  /api/table/{table_name}/generate-sql:
+    get:
+      tags:
+        - Query
+      summary: Generate SQL templates for table
+      description: Generate various SQL statement templates for a specific table
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table
+          schema:
+            type: string
+          example: "users"
+      responses:
+        '200':
+          description: SQL templates generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sql_templates:
+                    type: object
+                    properties:
+                      select_all:
+                        type: string
+                        example: "SELECT * FROM users LIMIT 10;"
+                      select_columns:
+                        type: string
+                        example: "SELECT id, name, email FROM users LIMIT 10;"
+                      count_rows:
+                        type: string
+                        example: "SELECT COUNT(*) as total_rows FROM users;"
+                      insert_template:
+                        type: string
+                        example: "INSERT INTO users (id, name, email) VALUES (?, ?, ?);"
+                      update_template:
+                        type: string
+                        example: "UPDATE users SET name = ? WHERE id = ?;"
+                      delete_template:
+                        type: string
+                        example: "DELETE FROM users WHERE id = ?;"
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/database-stats:
+    get:
+      tags:
+        - Analysis
+      summary: Get detailed database statistics
+      description: Retrieve comprehensive database statistics including table, column, and constraint analysis
+      responses:
+        '200':
+          description: Database statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    $ref: '#/components/schemas/DatabaseStats'
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/relationships:
+    get:
+      tags:
+        - Relationships
+      summary: Get table relationships
+      description: Find tables related to the specified table through foreign key relationships
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table to find relationships for
+          schema:
+            type: string
+          example: "users"
+      responses:
+        '200':
+          description: Table relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  related_tables:
+                    type: array
+                    items:
+                      type: string
+                    description: List of related table names
+                    example: [ "user_profiles", "orders", "user_sessions" ]
+                  relationships:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TableRelationship'
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/join-tables:
+    post:
+      tags:
+        - Query
+      summary: Perform table JOIN operation
+      description: Execute an INNER JOIN between two tables with custom join conditions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table1:
+                  type: string
+                  description: First table name
+                  example: "users"
+                table2:
+                  type: string
+                  description: Second table name
+                  example: "orders"
+                join_condition:
+                  type: string
+                  description: JOIN condition (ON clause)
+                  example: "users.id = orders.user_id"
+                columns:
+                  type: string
+                  description:
+                    Columns to select
+                  default: "*"
+                  example: "users.name, orders.total, orders.created_at"
+                where_clause:
+                  type: string
+                  description: Optional WHERE clause
+                  example: "WHERE orders.total > 100"
+                limit:
+                  type: integer
+                  description: Limit number of results
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  example: 50
+              required:
+                - table1
+                - table2
+                - join_condition
+      responses:
+        '200':
+          description: JOIN operation executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinQueryResponse'
+        '400':
+          description: Invalid JOIN parameters or execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/analyze:
+    get:
+      tags:
+        - Analysis
+      summary: Analyze table data
+      description: Perform basic data analysis including statistics for numeric columns
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table to analyze
+          schema:
+            type: string
+          example: "sales"
+        - name: include_stats
+          in: query
+          required: false
+          description: Include statistical analysis for numeric columns
+          schema:
+            type: boolean
+            default: true
+        - name: include_distribution
+          in: query
+          required: false
+          description: Include data distribution analysis
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Table analysis completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  analysis:
+                    $ref: '#/components/schemas/TableAnalysis'
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/schema/create-table:
+    post:
+      tags:
+        - Schema
+      summary: Create new table
+      description: Create a new table with specified columns and constraints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table_name:
+                  type: string
+                  description: Name of the new table
+                  example: "products"
+                columns:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ColumnDefinition'
+                  description: Column definitions
+                  example:
+                    - name: "id"
+                      type: "INTEGER"
+                      constraints: [ "PRIMARY KEY", "AUTOINCREMENT" ]
+                    - name: "name"
+                      type: "TEXT"
+                      constraints: [ "NOT NULL" ]
+                    - name: "price"
+                      type: "REAL"
+                      default: "0.00"
+              required:
+                - table_name
+                - columns
+      responses:
+        '200':
+          description: Table created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Table 'products' created successfully"
+        '400':
+          description: Table creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/schema/create-index:
+    post:
+      tags:
+        - Schema
+      summary: Create new index
+      description: Create an index on specified table columns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                index_name:
+                  type: string
+                  description: Name of the new index
+                  example: "idx_products_name"
+                table_name:
+                  type: string
+                  description: Target table name
+                  example: "products"
+                columns:
+                  type: array
+                  items:
+                    type: string
+                  description: Column names to index
+                  example: [ "name", "category" ]
+                unique:
+                  type: boolean
+                  description: Create unique index
+                  default: false
+                  example: false
+              required:
+                - index_name
+                - table_name
+                - columns
+      responses:
+        '200':
+          description: Index created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Index 'idx_products_name' created successfully"
+        '400':
+          description: Index creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/schema/create-view:
+    post:
+      tags:
+        - Schema
+      summary: Create new view
+      description: Create a database view with specified SELECT query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                view_name:
+                  type: string
+                  description: Name of the new view
+                  example: "active_users"
+                select_query:
+                  type: string
+                  description: SELECT query for the view
+                  example: "SELECT id, name, email FROM users WHERE status = 'active'"
+              required:
+                - view_name
+                - select_query
+      responses:
+        '200':
+          description: View created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "View 'active_users' created successfully"
+        '400':
+          description: View creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/triggers:
+    get:
+      tags:
+        - Triggers
+      summary: List all triggers
+      description: Get a list of all triggers in the database
+      responses:
+        '200':
+          description: Triggers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  triggers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TriggerInfo'
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/triggers/{trigger_name}:
+    get:
+      tags:
+        - Triggers
+      summary: Get trigger details
+      description: Retrieve detailed information about a specific trigger
+      parameters:
+        - name: trigger_name
+          in: path
+          required: true
+          description: Name of the trigger
+          schema:
+            type: string
+          example: "update_modified_time"
+      responses:
+        '200':
+          description: Trigger details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  trigger:
+                    $ref: '#/components/schemas/TriggerDetails'
+        '404':
+          description: Trigger not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Triggers
+      summary: Drop trigger
+      description: Remove a trigger from the database
+      parameters:
+        - name: trigger_name
+          in: path
+          required: true
+          description: Name of the trigger to drop
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$'
+          example: "salary_audit_trigger"
+          examples:
+            salary_trigger:
+              summary: Salary audit trigger
+              value: "salary_audit_trigger"
+            update_trigger:
+              summary: Update modified time trigger
+              value: "update_modified_time"
+      responses:
+        '200':
+          description: Trigger dropped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Trigger 'salary_audit_trigger' dropped successfully"
+        '404':
+          description: Trigger not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Trigger 'non_existent_trigger' not found"
+        '400':
+          description: No database connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/schema/create-trigger:
+    post:
+      tags:
+        - Triggers
+      summary: Create new trigger
+      description: Create a database trigger with specified event and action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trigger_name:
+                  type: string
+                  description: Name of the new trigger
+                  example: "update_modified_time"
+                table_name:
+                  type: string
+                  description: Target table name
+                  example: "users"
+                event:
+                  type: string
+                  enum: [ "BEFORE INSERT", "AFTER INSERT", "BEFORE UPDATE", "AFTER UPDATE", "BEFORE DELETE", "AFTER DELETE" ]
+                  description: Trigger event
+                  example: "BEFORE UPDATE"
+                trigger_body:
+                  type: string
+                  description: Trigger action SQL statements
+                  example: "UPDATE users SET modified_at = CURRENT_TIMESTAMP WHERE id = NEW.id;"
+                when_condition:
+                  type: string
+                  description: Optional WHEN condition
+                  example: "NEW.status != OLD.status"
+              required:
+                - trigger_name
+                - table_name
+                - event
+                - trigger_body
+      responses:
+        '200':
+          description: Trigger created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Trigger 'update_modified_time' created successfully"
+        '400':
+          description: Trigger creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/duplicates:
+    post:
+      tags:
+        - Analysis
+      summary: Find duplicate records
+      description: Find duplicate records in a table based on specified columns
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table to check for duplicates
+          schema:
+            type: string
+          example: "users"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                columns:
+                  type: array
+                  items:
+                    type: string
+                  description: Columns to check for duplicates (if empty, checks all columns)
+                  example: [ "email", "phone" ]
+                limit:
+                  type: integer
+                  description: Maximum number of duplicate groups to return
+                  default: 100
+                  example: 50
+      responses:
+        '200':
+          description: Duplicate check completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  duplicates:
+                    type: array
+                    items:
+                      type: object
+                    description: Array of duplicate record groups
+                    example:
+                      - email: "john@example.com"
+                        phone: "555-1234"
+                        duplicate_count: 3
+                  total_duplicate_groups:
+                    type: integer
+                    example: 5
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/table/{table_name}/null-analysis:
+    get:
+      tags:
+        - Analysis
+      summary: Analyze NULL values
+      description: Analyze NULL value distribution across table columns
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          description: Name of the table to analyze
+          schema:
+            type: string
+          example: "users"
+      responses:
+        '200':
+          description: NULL analysis completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  null_analysis:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NullAnalysis'
+                  total_rows:
+                    type: integer
+                    example: 1500
+        '404':
+          description: Table not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ConnectionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the connection was successful
+        message:
+          type: string
+          description: Success message
+        error:
+          type: string
+          description: Error message (if success is false)
+        database_info:
+          $ref: '#/components/schemas/DatabaseInfo'
+      required:
+        - success
+
+    DatabaseInfo:
+      type: object
+      properties:
+        database_name:
+          type: string
+          description: Name of the database file
+          example: "sample_database.db"
+        database_type:
+          type: string
+          description: Type of database
+          example: "SQLite"
+        file_size_mb:
+          type: number
+          format: float
+          description: Database file size in megabytes
+          example: 2.45
+        total_tables:
+          type: integer
+          description: Total number of tables
+          example: 5
+        total_views:
+          type: integer
+          description: Total number of views
+          example: 1
+        total_triggers:
+          type: integer
+          description: Total number of triggers
+          example: 2
+        total_indexes:
+          type: integer
+          description: Total number of indexes
+          example: 8
+        total_rows:
+          type: integer
+          description: Total number of rows across all tables
+          example: 10000
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableInfo'
+
+    TableInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Table name
+          example: "users"
+        columns:
+          type: integer
+          description: Number of columns
+          example: 5
+        rows:
+          type: integer
+          description: Number of rows
+          example: 1500
+        primary_keys:
+          type: array
+          items:
+            type: string
+          description: List of primary key column names
+          example: ["id"]
+        foreign_keys:
+          type: integer
+          description: Number of foreign key constraints
+          example: 2
+        indexes:
+          type: integer
+          description: Number of indexes
+          example: 3
+        triggers:
+          type: integer
+          description: Number of triggers
+          example: 1
+
+    TableSummary:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Table name
+          example: "users"
+        rows:
+          type: integer
+          description: Number of rows
+          example: 1500
+        columns:
+          type: integer
+          description: Number of columns
+          example: 5
+
+    TableStructure:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Table name
+          example: "users"
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnInfo'
+        row_count:
+          type: integer
+          description: Total number of rows
+          example: 1500
+        primary_keys:
+          type: array
+          items:
+            type: string
+          description: Primary key column names
+          example: ["id"]
+        foreign_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForeignKey'
+        indexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexInfo'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TriggerInfo'
+
+    ColumnInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Column name
+          example: "email"
+        type:
+          type: string
+          description: Column data type
+          example: "TEXT"
+        nullable:
+          type: boolean
+          description: Whether column allows NULL values
+          example: false
+        default:
+          type: string
+          nullable: true
+          description: Default value
+          example: null
+
+    ForeignKey:
+      type: object
+      properties:
+        column:
+          type: string
+          description: Foreign key column name
+          example: "user_id"
+        referenced_table:
+          type: string
+          description: Referenced table name
+          example: "users"
+        referenced_column:
+          type: string
+          description: Referenced column name
+          example: "id"
+
+    IndexInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Index name
+          example: "idx_users_email"
+        unique:
+          type: boolean
+          description: Whether index is unique
+          example: true
+        columns:
+          type: array
+          items:
+            type: string
+          description: Indexed column names
+          example: ["email"]
+
+    TriggerInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Trigger name
+          example: "update_modified_time"
+        sql:
+          type: string
+          description: Trigger SQL definition
+          example: "CREATE TRIGGER update_modified_time BEFORE UPDATE ON users..."
+
+    TableDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            type: object
+          description: Array of row data objects
+          example:
+            - id: 1
+              name: "John Doe"
+              email: "john@example.com"
+            - id: 2
+              name: "Jane Smith"
+              email: "jane@example.com"
+        row_count:
+          type: integer
+          description: Number of rows returned
+          example: 2
+        columns:
+          type: array
+          items:
+            type: string
+          description: Column names
+          example: ["id", "name", "email"]
+
+    SelectQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        type:
+          type: string
+          enum: ["select"]
+          example: "select"
+        data:
+          type: array
+          items:
+            type: object
+          description: Query result data
+        row_count:
+          type: integer
+          description: Number of rows returned
+          example: 25
+        columns:
+          type: array
+          items:
+            type: string
+          description: Column names in result set
+          example: ["id", "name", "count"]
+
+    ModifyQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        type:
+          type: string
+          enum: ["modify"]
+          example: "modify"
+        affected_rows:
+          type: integer
+          description: Number of rows affected
+          example: 3
+        message:
+          type: string
+          description: Success message
+          example: "Query executed successfully. 3 rows affected."
+
+    VisualizationRequest:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+          description: Data to visualize
+          example:
+            - category: "A"
+              value: 10
+            - category: "B"
+              value: 15
+        chart_type:
+          type: string
+          enum: ["bar", "line", "pie", "histogram", "scatter"]
+          description: Type of chart to generate
+          example: "bar"
+        x_column:
+          type: string
+          description: Column name for X-axis
+          example: "category"
+        y_column:
+          type: string
+          description: Column name for Y-axis
+          example: "value"
+        title:
+          type: string
+          description: Chart title
+          example: "Sales by Category"
+      required:
+        - data
+        - chart_type
+        - x_column
+        - y_column
+
+    ValidationResult:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["error", "warning", "info", "success"]
+          description: Severity level of the validation result
+          example: "warning"
+        title:
+          type: string
+          description: Validation check title
+          example: "Empty Tables"
+        message:
+          type: string
+          description: Detailed validation message
+          example: "Found 2 empty tables: temp_data, logs"
+
+    PerformanceAnalysis:
+      type: object
+      properties:
+        table_sizes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "transactions"
+              rows:
+                type: integer
+                example: 50000
+              columns:
+                type: integer
+                example: 8
+              indexes:
+                type: integer
+                example: 2
+              estimated_size_mb:
+                type: number
+                format: float
+                example: 12.5
+        index_analysis:
+          type: object
+          properties:
+            total_indexes:
+              type: integer
+              example: 15
+            tables_with_indexes:
+              type: integer
+              example: 4
+            tables_without_indexes:
+              type: integer
+              example: 1
+            avg_indexes_per_table:
+              type: number
+              format: float
+              example: 3.0
+        recommendations:
+          type: array
+          items:
+            type: string
+          example:
+            - "Add indexes to large table: transactions"
+            - "Consider indexing foreign keys in user_sessions: user_id"
+
+    SampleQuery:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Query description
+          example: "Show all tables"
+        query:
+          type: string
+          description: SQL query
+          example: "SELECT name FROM sqlite_master WHERE type='table';"
+
+    DatabaseStats:
+      type: object
+      properties:
+        table_stats:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "users"
+              rows:
+                type: integer
+                example: 1500
+              columns:
+                type: integer
+                example: 5
+              indexes:
+                type: integer
+                example: 2
+              has_primary_key:
+                type: boolean
+                example: true
+              foreign_keys:
+                type: integer
+                example: 0
+        column_types:
+          type: object
+          description: Distribution of column types
+          example:
+            "TEXT": 25
+            "INTEGER": 15
+            "REAL": 8
+            "BLOB": 2
+        index_stats:
+          type: object
+          properties:
+            total_indexes:
+              type: integer
+              example: 12
+            tables_with_indexes:
+              type: integer
+              example: 4
+            tables_without_indexes:
+              type: integer
+              example: 1
+        constraint_stats:
+          type: object
+          properties:
+            tables_with_pk:
+              type: integer
+              example: 5
+            tables_with_fk:
+              type: integer
+              example: 3
+            total_foreign_keys:
+              type: integer
+              example: 7
+
+    # NEW SCHEMAS - These were missing and causing the unresolved references
+
+    TableRelationship:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["references", "referenced_by"]
+          description: Type of relationship
+          example: "references"
+        table:
+          type: string
+          description: Related table name
+          example: "orders"
+        foreign_key:
+          $ref: '#/components/schemas/ForeignKey'
+
+    JoinQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            type: object
+          description: JOIN query result data
+          example:
+            - user_name: "John Doe"
+              order_total: 150.00
+              order_date: "2025-06-01"
+            - user_name: "Jane Smith"
+              order_total: 89.99
+              order_date: "2025-06-02"
+        row_count:
+          type: integer
+          description: Number of rows returned
+          example: 2
+        columns:
+          type: array
+          items:
+            type: string
+          description: Column names in result set
+          example: ["user_name", "order_total", "order_date"]
+
+    TableAnalysis:
+      type: object
+      properties:
+        basic_stats:
+          type: object
+          properties:
+            total_rows:
+              type: integer
+              example: 1500
+            total_columns:
+              type: integer
+              example: 8
+        numeric_analysis:
+          type: array
+          items:
+            type: object
+            properties:
+              column:
+                type: string
+                example: "age"
+              min_value:
+                type: number
+                example: 18
+              max_value:
+                type: number
+                example: 85
+              avg_value:
+                type: number
+                format: float
+                example: 42.5
+              null_count:
+                type: integer
+                example: 12
+        text_analysis:
+          type: array
+          items:
+            type: object
+            properties:
+              column:
+                type: string
+                example: "name"
+              min_length:
+                type: integer
+                example: 2
+              max_length:
+                type: integer
+                example: 50
+              avg_length:
+                type: number
+                format: float
+                example: 12.8
+              null_count:
+                type: integer
+                example: 0
+        data_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              column:
+                type: string
+                example: "status"
+              value_counts:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                      example: "active"
+                    count:
+                      type: integer
+                      example: 1200
+                    percentage:
+                      type: number
+                      format: float
+                      example: 80.0
+
+    ColumnDefinition:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Column name
+          example: "product_name"
+        type:
+          type: string
+          description: Column data type
+          example: "TEXT"
+        constraints:
+          type: array
+          items:
+            type: string
+          description: Column constraints
+          example: ["NOT NULL", "UNIQUE"]
+        default:
+          type: string
+          description: Default value
+          example: "''"
+      required:
+        - name
+        - type
+
+    TriggerDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Trigger name
+          example: "update_modified_time"
+        table:
+          type: string
+          description: Associated table name
+          example: "users"
+        event:
+          type: string
+          description: Trigger event
+          example: "BEFORE UPDATE"
+        sql:
+          type: string
+          description: Complete trigger SQL definition
+          example: "CREATE TRIGGER update_modified_time BEFORE UPDATE ON users FOR EACH ROW BEGIN UPDATE users SET modified_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END"
+        when_condition:
+          type: string
+          nullable: true
+          description: WHEN condition if specified
+          example: "NEW.status != OLD.status"
+
+    NullAnalysis:
+      type: object
+      properties:
+        column:
+          type: string
+          description: Column name
+          example: "email"
+        data_type:
+          type: string
+          description: Column data type
+          example: "TEXT"
+        nullable:
+          type: boolean
+          description: Whether column allows NULL values
+          example: false
+        null_count:
+          type: integer
+          description: Number of NULL values
+          example: 15
+        null_percentage:
+          type: number
+          format: float
+          description: Percentage of NULL values
+          example: 1.0
+        non_null_count:
+          type: integer
+          description: Number of non-NULL values
+          example: 1485
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "No database connected"
+        success:
+          type: boolean
+          description: Always false for error responses
+          example: false
+
+  securitySchemes: {}
+
+  examples:
+    successful_connection:
+      summary: Successful database connection
+      value:
+        success: true
+        message: "Successfully connected to sample_database.db"
+        database_info:
+          database_name: "sample_database.db"
+          database_type: "SQLite"
+          file_size_mb: 2.45
+          total_tables: 5
+          total_views: 1
+          total_triggers: 2
+          total_indexes: 8
+          total_rows: 10000
+
+    select_query_result:
+      summary: SELECT query execution result
+      value:
+        success: true
+        type: "select"
+        data:
+          - id: 1
+            name: "John Doe"
+            age: 30
+            email: "john@example.com"
+          - id: 2
+            name: "Jane Smith"
+            age: 28
+            email: "jane@example.com"
+        row_count: 2
+        columns: ["id", "name", "age", "email"]
+
+    table_structure_example:
+      summary: Table structure details
+      value:
+        success: true
+        structure:
+          name: "users"
+          columns:
+            - name: "id"
+              type: "INTEGER"
+              nullable: false
+              default: null
+            - name: "name"
+              type: "TEXT"
+              nullable: false
+              default: null
+            - name: "email"
+              type: "TEXT"
+              nullable: false
+              default: null
+          row_count: 1500
+          primary_keys: ["id"]
+          foreign_keys: []
+          indexes:
+            - name: "idx_users_email"
+              unique: true
+              columns: ["email"]
+          triggers: []

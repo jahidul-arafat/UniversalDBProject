@@ -1,0 +1,231 @@
+
+-- First, create the salary audit log table
+CREATE TABLE salary_audit_log (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    old_salary DECIMAL(8,2),
+    new_salary DECIMAL(8,2),
+    changed_by VARCHAR(50),
+    change_date DATETIME,
+    change_reason VARCHAR(255),
+    FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
+);
+
+-- Create an index for better performance on employee lookups
+CREATE INDEX idx_salary_audit_employee ON salary_audit_log(employee_id);
+CREATE INDEX idx_salary_audit_date ON salary_audit_log(change_date);
+
+{
+  "table_name": "salary_audit_log",
+  "columns": [
+    {
+      "name": "audit_id",
+      "type": "INTEGER",
+      "constraints": [
+        "PRIMARY KEY",
+        "AUTOINCREMENT"
+      ]
+    },
+    {
+      "name": "employee_id",
+      "type": "INTEGER",
+      "constraints": [
+        "NOT NULL"
+      ]
+    },
+    {
+      "name": "old_salary",
+      "type": "DECIMAL(8,2)"
+    },
+    {
+      "name": "new_salary",
+      "type": "DECIMAL(8,2)"
+    },
+    {
+      "name": "changed_by",
+      "type": "VARCHAR(50)",
+      "default": "'SYSTEM'"
+    },
+    {
+      "name": "change_date",
+      "type": "DATETIME",
+      "default": "CURRENT_TIMESTAMP"
+    },
+    {
+      "name": "change_reason",
+      "type": "VARCHAR(255)"
+    }
+  ]
+}
+
+
+{
+  "index_name": "idx_salary_audit_employee",
+  "table_name": "salary_audit_log",
+  "columns": ["employee_id"],
+  "unique": false
+}
+
+{
+  "index_name": "idx_salary_audit_date",
+  "table_name": "salary_audit_log",
+  "columns": ["change_date"],
+  "unique": false
+}
+
+
+{
+  "trigger_name": "salary_audit_trigger",
+  "table_name": "employees",
+  "event": "AFTER UPDATE",
+  "trigger_body": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_date) VALUES (NEW.employee_id, OLD.salary, NEW.salary, 'SYSTEM', datetime('now'));",
+  "when_condition": "OLD.salary != NEW.salary"
+}
+
+curl -X 'DELETE' 'http://localhost:5001/api/triggers/salary_audit_trigger' -H 'accept: application/json'
+
+{
+  "view_name": "employee_details_view",
+  "select_query": "SELECT e.employee_id, e.first_name, e.last_name, e.email, e.phone_number, e.hire_date, e.salary, j.job_title, j.min_salary, j.max_salary, d.department_name, l.city, l.state_province, l.country_id FROM employees e LEFT JOIN jobs j ON e.job_id = j.job_id LEFT JOIN departments d ON e.department_id = d.department_id LEFT JOIN locations l ON d.location_id = l.location_id"
+}
+
+
+CREATE/DROP/ALTER statements get appropriate response types
+Error handling is more robust
+Response consistency across different query types
+Replace the existing execute_query function in your web_db_explorer.py file with this updated version.
+
+After updating, test the PRAGMA query again:
+
+bash
+curl -X 'POST' 'http://localhost:5001/api/execute-query' \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "PRAGMA table_info(salary_audit_log);"}'
+This should now return the column information properly instead of treating it as a modify query.
+
+Also test a regular SELECT:
+
+bash
+curl -X 'POST' 'http://localhost:5001/api/execute-query' \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "SELECT * FROM employees LIMIT 5;"}'
+Both should now work correctly with proper response formatting.
+
+
+
+
+sicne we created salary_audit_log and two indexes on it; lets inset some data into it
+
+Great! Let's insert some sample data into the salary_audit_log table to test it. I'll provide you with several INSERT statements that you can execute using the /api/execute-query endpoint.
+
+
+Sample Data for Salary Audit Log
+Code
+Here are 5 INSERT statements to add sample data to your salary audit log:
+
+1. Annual performance review increase:
+
+bash
+curl -X 'POST' 'http://localhost:5001/api/execute-query' \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salar
+
+
+
+
+// 1. Insert a manual salary adjustment record
+{
+  "query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_reason) VALUES (100, 24000.00, 25000.00, 'HR_ADMIN', 'Annual performance review - merit increase');"
+}
+
+// 2. Insert a promotion salary change
+{
+  "query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_reason) VALUES (101, 17000.00, 18000.00, 'MANAGER', 'Promotion to Senior Vice President');"
+}
+
+// 3. Insert a cost of living adjustment
+{
+  "query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_reason) VALUES (108, 12000.00, 12600.00, 'SYSTEM', 'Annual cost of living adjustment - 5%');"
+}
+
+// 4. Insert a salary correction
+{
+  "query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_reason) VALUES (145, 14000.00, 14500.00, 'PAYROLL', 'Salary correction - market adjustment');"
+}
+
+// 5. Insert a bonus adjustment
+{
+  "query": "INSERT INTO salary_audit_log (employee_id, old_salary, new_salary, changed_by, change_reason) VALUES (201, 13000.00, 13500.00, 'HR_ADMIN', 'Performance bonus integration into base salary');"
+}
+
+
+// 1. INNER JOIN (default) - Only employees who have dependents
+{
+   "table1": "employees",
+   "table2": "dependents",
+   "join_condition": "employees.employee_id = dependents.employee_id",
+   "columns": "employees.first_name, employees.last_name, dependents.first_name as dependent_name, dependents.relationship",
+   "join_type": "INNER",
+   "limit": 50
+ }
+
+// 2. LEFT JOIN - All employees, with dependents if they have any
+{
+  "table1": "employees",
+  "table2": "dependents",
+  "join_condition": "employees.employee_id = dependents.employee_id",
+  "columns": "employees.first_name, employees.last_name, dependents.first_name as dependent_name, dependents.relationship",
+  "join_type": "LEFT",
+  "limit": 50
+}
+
+// 3. RIGHT JOIN - All dependents, with employee info (equivalent to LEFT JOIN with tables swapped)
+{
+  "table1": "employees",
+  "table2": "dependents",
+  "join_condition": "employees.employee_id = dependents.employee_id",
+  "columns": "employees.first_name, employees.last_name, dependents.first_name as dependent_name, dependents.relationship",
+  "join_type": "RIGHT",
+  "limit": 50
+}
+
+// 4. LEFT JOIN - All departments, even those without employees
+{
+  "table1": "departments",
+  "table2": "employees",
+  "join_condition": "departments.department_id = employees.department_id",
+  "columns": "departments.department_name, COUNT(employees.employee_id) as employee_count",
+  "join_type": "LEFT",
+  "limit": 50
+}
+
+// 5. LEFT JOIN - Find employees without dependents (using WHERE clause)
+{
+  "table1": "employees",
+  "table2": "dependents",
+  "join_condition": "employees.employee_id = dependents.employee_id",
+  "columns": "employees.first_name, employees.last_name, employees.email",
+  "join_type": "LEFT",
+  "where_clause": "dependents.employee_id IS NULL",
+  "limit": 50
+}
+
+// 6. INNER JOIN - Employees with salary audit history
+{
+  "table1": "employees",
+  "table2": "salary_audit_log",
+  "join_condition": "employees.employee_id = salary_audit_log.employee_id",
+  "columns": "employees.first_name, employees.last_name, salary_audit_log.old_salary, salary_audit_log.new_salary, salary_audit_log.change_date",
+  "join_type": "INNER",
+  "limit": 50
+}
+
+// 7. LEFT JOIN - All employees, with salary audit history if available
+{
+  "table1": "employees",
+  "table2": "salary_audit_log",
+  "join_condition": "employees.employee_id = salary_audit_log.employee_id",
+  "columns": "employees.first_name, employees.last_name, employees.salary, salary_audit_log.change_date, salary_audit_log.new_salary",
+  "join_type": "LEFT",
+  "limit": 50
+}
